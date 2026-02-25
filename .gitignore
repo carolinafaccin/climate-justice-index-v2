@@ -143,6 +143,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv_win/
+venv_mac/
 
 # Spyder project settings
 .spyderproject
@@ -207,6 +209,10 @@ marimo/_lsp/
 __marimo__/
 
 # Folders
-data/clean/*
-data/raw*
-figures/*
+data/clean/
+data/raw/
+figures/
+
+# Others
+.DS_Store
+__pycache__/
