@@ -1,45 +1,69 @@
 import pandas as pd
-import geopandas as gpd
 import numpy as np
 import logging
 import re
 from pathlib import Path
+from datetime import datetime
+from . import config as cfg  # Precisamos importar o config para saber onde é a pasta logs
 
-# Configuração de Logs básica
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Função para configurar os logs (Apague o logging.basicConfig antigo daqui)
+def setup_logging():
+    # Gera um nome de arquivo único com a data/hora atual (ex: pipeline_20260226_093000.log)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = cfg.LOGS_DIR / f"pipeline_{timestamp}.log"
+
+    # Criar um logger raiz (root)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG) # O logger mestre captura tudo
+
+    # Limpa configurações antigas caso você rode mais de uma vez na mesma sessão
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # 1. Configuração do arquivo de texto (Salva tudo, até o DEBUG)
+    file_format = logging.Formatter('%(asctime)s | %(levelname)-8s | %(module)s:%(funcName)s:%(lineno)d - %(message)s')
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_format)
+
+    # 2. Configuração do Terminal (Mostra apenas INFO para cima, para não poluir a tela)
+    console_format = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s', datefmt='%H:%M:%S')
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(console_format)
+
+    # Adiciona os dois comportamentos ao projeto
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    logging.info(f"Logs configurados. Arquivo de log detalhado em: {log_file}")
 
 def get_next_version_path(path: Path) -> Path:
     """
     Verifica se o arquivo existe. Se existir, incrementa a versão (v1 -> v2 -> v3).
-    Exemplo: 'arquivo.gpkg' -> 'arquivo_v1.gpkg' -> 'arquivo_v2.gpkg'
+    Exemplo: 'resultado.parquet' -> 'resultado_v1.parquet' -> 'resultado_v2.parquet'
     """
     path = Path(path)
     
-    # Se o arquivo não existe e não tem padrão de versão, adiciona _v1
     if not path.exists():
-        # Se o nome original já não termina com _vX, adicionamos _v1 para começar organizado
         if not re.search(r'_v\d+$', path.stem):
             return path.with_name(f"{path.stem}_v1{path.suffix}")
         return path
 
-    # Se já existe, vamos descobrir qual a próxima versão
     stem = path.stem
     suffix = path.suffix
     parent = path.parent
 
-    # Procura por padrão "_v1", "_v2" no final do nome
     match = re.search(r'_v(\d+)$', stem)
     
     if match:
         current_version = int(match.group(1))
-        base_name = stem[:match.start()] # Remove a versão antiga
+        base_name = stem[:match.start()]
         next_version = current_version + 1
     else:
-        # Se o arquivo existe mas não tem versão (ex: "dados.parquet"), o próximo é "dados_v1.parquet"
         base_name = stem
         next_version = 1
 
-    # Loop para garantir que encontramos um slot vazio (caso pule de v1 para v5 manualmente)
     while True:
         new_path = parent / f"{base_name}_v{next_version}{suffix}"
         if not new_path.exists():
@@ -49,85 +73,29 @@ def get_next_version_path(path: Path) -> Path:
 def normalize_minmax(series: pd.Series, winsorize: bool = False, limits: tuple = (0.01, 0.99)) -> pd.Series:
     """
     Normaliza uma série pandas entre 0 e 1 (Min-Max Scaling).
-    
-    Parâmetros:
-        series: A coluna de dados.
-        winsorize: Se True, aplica corte nos percentis extremos antes de normalizar.
-        limits: Tupla (min, max) dos quantis para corte (ex: 0.01 e 0.99).
     """
-    # Garante numérico e substitui infinitos
     s = pd.to_numeric(series, errors='coerce')
     
-    # 1. Aplica Winsorization se solicitado
     if winsorize:
         lower_bound = s.quantile(limits[0])
         upper_bound = s.quantile(limits[1])
         s = s.clip(lower=lower_bound, upper=upper_bound)
     
-    # 2. Normalização Min-Max padrão
     min_val = s.min()
     max_val = s.max()
     
-    # Evita divisão por zero
     if max_val == min_val:
         return pd.Series(0.0, index=s.index)
         
     return (s - min_val) / (max_val - min_val)
-
-def load_gpkg(path: Path, layer: str = None) -> gpd.GeoDataFrame:
-    path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"Arquivo não encontrado: {path}")
-    logging.info(f"Carregando GPKG: {path.name}...")
-    try:
-        return gpd.read_file(path, engine='pyogrio', layer=layer)
-    except Exception as e:
-        logging.warning(f"Falha com pyogrio ({e}), tentando driver padrão fiona...")
-        return gpd.read_file(path, layer=layer)
-
-def save_gpkg(gdf: gpd.GeoDataFrame, path: Path, layer: str = None):
-    """Salva GPKG com versionamento automático."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Gera o caminho com versão (ex: _v2)
-    final_path = get_next_version_path(path)
-    
-    logging.info(f"Salvando GPKG em: {final_path.name}...")
-    try:
-        gdf.to_file(final_path, driver='GPKG', engine='pyogrio', layer=layer)
-    except Exception as e:
-        logging.warning(f"Erro ao salvar com pyogrio ({e}), tentando padrão...")
-        gdf.to_file(final_path, driver='GPKG', layer=layer)
-    logging.info("Salvo com sucesso.")
 
 def save_parquet(df: pd.DataFrame, path: Path):
     """Salva Parquet com versionamento automático."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Gera o caminho com versão
     final_path = get_next_version_path(path)
     
     logging.info(f"Salvando Parquet em: {final_path.name}...")
     df.to_parquet(final_path)
     logging.info("Salvo com sucesso.")
-
-def merge_csv_to_gdf(gdf: gpd.GeoDataFrame, csv_path: Path, join_key: str, cols_to_keep: list = None) -> gpd.GeoDataFrame:
-    if not csv_path.exists():
-        logging.warning(f"Arquivo CSV não encontrado: {csv_path.name}. Merge ignorado.")
-        return gdf
-    logging.info(f"Integrando {csv_path.name}...")
-    try:
-        usecols = ([join_key] + cols_to_keep) if cols_to_keep else None
-        df_temp = pd.read_csv(csv_path, usecols=usecols, dtype={join_key: str})
-        gdf[join_key] = gdf[join_key].astype(str)
-        gdf = gdf.merge(df_temp, on=join_key, how='left')
-        if cols_to_keep:
-            for col in cols_to_keep:
-                if col in gdf.columns:
-                    gdf[col] = gdf[col].fillna(0)
-        return gdf
-    except Exception as e:
-        logging.error(f"Erro ao integrar {csv_path.name}: {e}")
-        return gdf

@@ -11,6 +11,9 @@ CLEAN_DIR = DATA_DIR / "clean"
 RESULTS_DIR = DATA_DIR / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
 # ==============================================================================
 # 2. DEFINIÇÕES GLOBAIS
 # ==============================================================================
@@ -18,75 +21,61 @@ H3_RES = 9
 COL_ID_H3 = 'h3_id'
 
 # ==============================================================================
-# 3. MAPEAMENTO DE COLUNAS (O ÚNICO LUGAR ONDE VOCÊ PRECISARÁ MEXER)
+# 3. INDICADORES
 # ==============================================================================
-# Chave: Apelido usado no código | Valor: Nome real da coluna no arquivo .parquet
-MAPA_COLUNAS = {
-    "e1": "e1_des_norm",
-    "e2": "e2_inu_norm",
-    "e3": "e3_cos_norm",
-    "e4": "e4_cal_norm",
-    "e5": "e5_que_norm",
-    
-    "v1": "v1_ren_norm",
-    "v2": "v2_mor_norm",
-    "v3": "v3_inf_norm",
-    "v4": "v4_edu_norm",
-    "v5": "v5_sau_norm",
-    
-    "p1": "p1_gen_norm",
-    "p2": "p2_cri_norm",
-    "p3": "p3_ido_norm",
-    "p4": "p4_pre_norm",
-    "p5": "p5_ind_norm",
-    
-    "g1": "g1_inv_norm",
-    "g2": "g2_par_norm",
-    "g3": "g3_res_norm",
-    "g4": "g4_rec_norm",
-    "g5": "g5_ass_norm"
-}
+INDICADORES = {
+    # EXPOSIÇÃO CLIMÁTICA
+    "e1": {"dimensao": "exposicao", "col": "e1_des_norm", "file": "br_h3_e1_deslizamentos.parquet"},
+    "e2": {"dimensao": "exposicao", "col": "e2_inu_norm", "file": "br_h3_e2_inundacoes.parquet"},
+    "e3": {"dimensao": "exposicao", "col": "e3_cos_norm", "file": "br_h3_e3_vulnerabilidade_costeira.parquet"},
+    "e4": {"dimensao": "exposicao", "col": "e4_cal_norm", "file": "br_h3_e4_calor.parquet"},
+    "e5": {"dimensao": "exposicao", "col": "e5_que_norm", "file": "br_h3_e5_queimadas.parquet"},
 
-# Estrutura das Dimensões usando APENAS os apelidos
-DIMENSOES = {
-    "exposicao_climatica": ["e1", "e2", "e3", "e4", "e5"],
-    "vulnerabilidade":     ["v1", "v2", "v3", "v4", "v5"],
-    "grupos_prioritarios": ["p1", "p2", "p3", "p4", "p5"],
-    "gestao_municipal":    ["g1", "g2", "g3", "g4", "g5"]
+    # VULNERABILIDADE
+    "v1": {"dimensao": "vulnerabilidade", "col": "v1_ren_norm", "file": "br_h3_v1_renda.parquet"},
+    "v2": {"dimensao": "vulnerabilidade", "col": "v2_mor_norm", "file": "br_h3_v2_moradia.parquet"},
+    "v3": {"dimensao": "vulnerabilidade", "col": "v3_inf_norm", "file": "br_h3_v3_infraestrutura.parquet"},
+    "v4": {"dimensao": "vulnerabilidade", "col": "v4_edu_norm", "file": "br_h3_v4_educacao.parquet"},
+    "v5": {"dimensao": "vulnerabilidade", "col": "v5_sau_norm", "file": "br_h3_v5_modelo_gravitacional_saude.parquet"},
+
+    # GRUPOS PRIORITÁRIOS
+    "p1": {"dimensao": "grupos_prioritarios", "col": "p1_gen_norm", "file": "br_h3_p1_mulheres_chefes_familia.parquet"},
+    "p2": {"dimensao": "grupos_prioritarios", "col": "p2_cri_norm", "file": "br_h3_p2_criancas.parquet"},
+    "p3": {"dimensao": "grupos_prioritarios", "col": "p3_ido_norm", "file": "br_h3_p3_idosos.parquet"},
+    "p4": {"dimensao": "grupos_prioritarios", "col": "p4_pre_norm", "file": "br_h3_p4_pretos_pardos.parquet"},
+    "p5": {"dimensao": "grupos_prioritarios", "col": "p5_ind_norm", "file": "br_h3_p5_indigenas_quilombolas.parquet"},
+
+    # CAPACIDADE DE GESTÃO MUNICIPAL
+    "g1": {"dimensao": "gestao_municipal", "col": "g1_inv_norm", "file": "b3_h3_g1_mun_despesas_liquidadas.parquet"},
+    "g2": {"dimensao": "gestao_municipal", "col": "g2_par_norm", "file": "b3_h3_g2_mun_nupdec.parquet"},
+    "g3": {"dimensao": "gestao_municipal", "col": "g3_alerta_norm", "file": "b3_h3_g3_mun_alerta.parquet"},
+    "g4": {"dimensao": "gestao_municipal", "col": "g4_map_norm", "file": "b3_h3_g4_mun_mapeamento.parquet"},
+    "g5": {"dimensao": "gestao_municipal", "col": "g5_pol_norm", "file": "b3_h3_g5_mun_politicas_direitos_humanos.parquet"},
 }
 
 # ==============================================================================
-# 4. INPUTS
+# 4. GERAÇÃO AUTOMÁTICA DOS DICIONÁRIOS
 # ==============================================================================
+
+# Gera o MAPA_COLUNAS: {'e1': 'e1_des_norm', ...}
+MAPA_COLUNAS = {k: v['col'] for k, v in INDICADORES.items()}
+
+# Gera o FILES['h3']: {'e1': PosixPath('.../br_h3_e1_deslizamentos.parquet'), ...}
+FILES_H3 = {k: CLEAN_DIR / v['file'] for k, v in INDICADORES.items()}
+FILES_H3["base_metadados"] = RAW_DIR / "h3" / "br_h3_res9.parquet"
+
+# Gera o DIMENSOES agrupando os apelidos por categoria
+DIMENSOES = {}
+for k, v in INDICADORES.items():
+    dim = v['dimensao']
+    if dim not in DIMENSOES:
+        DIMENSOES[dim] = []
+    DIMENSOES[dim].append(k)
+
+# Dicionário de arquivos final
 FILES = {
-    "h3": {
-        "base_metadados": RAW_DIR / "h3"/ "br_h3_res9.parquet",
-        
-        "e1": CLEAN_DIR / "br_h3_deslizamentos.parquet",
-        "e2": CLEAN_DIR / "br_h3_inundacoes.parquet",
-        "e3": CLEAN_DIR / "br_h3_vulnerabilidade_costeira.parquet",
-        "e4": CLEAN_DIR / "br_h3_calor.parquet",
-        "e5": CLEAN_DIR / "br_h3_queimadas.parquet",
-        
-        "v1": CLEAN_DIR / "br_h3_vulnerabilidade.parquet",
-        "v2": CLEAN_DIR / "br_h3_vulnerabilidade.parquet",
-        "v3": CLEAN_DIR / "br_h3_vulnerabilidade.parquet",
-        "v4": CLEAN_DIR / "br_h3_vulnerabilidade.parquet",
-        "v5": CLEAN_DIR / "br_h3_acessibilidade_saude.parquet",
-
-        "p1": CLEAN_DIR / "br_h3_grupos_prioritarios.parquet",
-        "p2": CLEAN_DIR / "br_h3_grupos_prioritarios.parquet",
-        "p3": CLEAN_DIR / "br_h3_grupos_prioritarios.parquet",
-        "p4": CLEAN_DIR / "br_h3_grupos_prioritarios.parquet",
-        "p5": CLEAN_DIR / "br_h3_grupos_prioritarios.parquet",
-        
-        "g1": CLEAN_DIR / "g1_mun_despesas_liquidadas.csv",
-        "g2": CLEAN_DIR / "g2_mun_nupdec.csv",
-        "g3": CLEAN_DIR / "g3_mun_alerta.csv",
-        "g4": CLEAN_DIR / "g4_mun_mapeamento.csv",
-        "g5": CLEAN_DIR / "g5_mun_politicas_direitos_humanos.csv"
-    },
+    "h3": FILES_H3,
     "output": {
-        "h3_final": RESULTS_DIR / "br_h3_res9_final.parquet"
+        "h3_final": RESULTS_DIR / "br_h3_res9_ijc.parquet"
     }
 }

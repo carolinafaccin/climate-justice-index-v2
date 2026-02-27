@@ -17,7 +17,7 @@ def calcular_ijc_simples(df: pd.DataFrame) -> pd.DataFrame:
     # Lista das colunas criadas no passo anterior
     cols_indices = [f'ind_{d}' for d in cfg.DIMENSOES.keys()]
     
-    # IJC Final = Média simples entre Exposição, Vulnerabilidade, Interseccionalidade e Governança
+    # IJC Final = Média simples entre Exposição Climática, Vulnerabilidade, Grupos Prioritários e Capacidade de Governança
     df['ijc_final'] = df[cols_indices].mean(axis=1)
     
     return df
