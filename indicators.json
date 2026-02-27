@@ -14,9 +14,9 @@
   "p3": {"dimension": "grupos_prioritarios", "col": "p3_ido_norm", "file": "br_h3_p3_idosos.parquet"},
   "p4": {"dimension": "grupos_prioritarios", "col": "p4_pre_norm", "file": "br_h3_p4_pretos.parquet"},
   "p5": {"dimension": "grupos_prioritarios", "col": "p5_ind_norm", "file": "br_h3_p5_indigenas.parquet"},
-  "g1": {"dimension": "gestao_municipal", "col": "g1_inv_norm", "file": "b3_h3_g1_mun_investimento_despesas.parquet"},
-  "g2": {"dimension": "gestao_municipal", "col": "g2_par_norm", "file": "b3_h3_g2_mun_participacao_nupdec.parquet"},
-  "g3": {"dimension": "gestao_municipal", "col": "g3_res_norm", "file": "b3_h3_g3_mun_resposta_alerta.parquet"},
-  "g4": {"dimension": "gestao_municipal", "col": "g4_rec_norm", "file": "b3_h3_g4_mun_reconhecimento_mapeamento.parquet"},
-  "g5": {"dimension": "gestao_municipal", "col": "g5_rep_norm", "file": "b3_h3_g5_mun_reparacao_direitos.parquet"}
+  "g1": {"dimension": "gestao_municipal", "col": "g1_inv_norm", "file": "br_h3_g1_mun_investimento_despesas.parquet"},
+  "g2": {"dimension": "gestao_municipal", "col": "g2_par_norm", "file": "br_h3_g2_mun_participacao_nupdec.parquet"},
+  "g3": {"dimension": "gestao_municipal", "col": "g3_res_norm", "file": "br_h3_g3_mun_resposta_alerta.parquet"},
+  "g4": {"dimension": "gestao_municipal", "col": "g4_rec_norm", "file": "br_h3_g4_mun_reconhecimento_mapeamento.parquet"},
+  "g5": {"dimension": "gestao_municipal", "col": "g5_rep_norm", "file": "br_h3_g5_mun_reparacao_direitos.parquet"}
 }
