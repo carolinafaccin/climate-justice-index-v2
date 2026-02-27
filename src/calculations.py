@@ -2,22 +2,22 @@ import pandas as pd
 import logging
 from . import config as cfg
 
-def calcular_ijc_simples(df: pd.DataFrame) -> pd.DataFrame:
-    logging.info("Calculando IJC via Média Simples...")
+def calculate_simple_cji(df: pd.DataFrame) -> pd.DataFrame:
+    logging.info("Calculating CJI (Climate Justice Index) via Simple Average...")
     df = df.copy()
 
-    # 1. Calcula a média de cada dimensão
-    for dimensao, colunas in cfg.DIMENSOES.items():
-        # Garante que as colunas existam, se não existir, assume 0
-        existentes = [c for c in colunas if c in df.columns]
-        df[f'ind_{dimensao}'] = df[existentes].mean(axis=1)
-        logging.info(f"Dimensão {dimensao} calculada.")
+    # 1. Calculate the average for each dimension
+    for dimension, columns in cfg.DIMENSIONS.items():
+        # Ensure the columns exist; if not, they are ignored
+        existing_cols = [c for c in columns if c in df.columns]
+        df[f'ind_{dimension}'] = df[existing_cols].mean(axis=1)
+        logging.info(f"Dimension '{dimension}' calculated.")
 
-    # 2. Índice Final (Média das 4 dimensões)
-    # Lista das colunas criadas no passo anterior
-    cols_indices = [f'ind_{d}' for d in cfg.DIMENSOES.keys()]
+    # 2. Final Index (Average of the 4 dimensions)
+    # List of columns created in the previous step
+    index_cols = [f'ind_{d}' for d in cfg.DIMENSIONS.keys()]
     
-    # IJC Final = Média simples entre Exposição Climática, Vulnerabilidade, Grupos Prioritários e Capacidade de Governança
-    df['ijc_final'] = df[cols_indices].mean(axis=1)
+    # Final CJI = Simple average between Climate Exposure, Vulnerability, Priority Groups, and Governance Capacity
+    df['cji_final'] = df[index_cols].mean(axis=1)
     
     return df

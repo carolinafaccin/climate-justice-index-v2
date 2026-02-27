@@ -2,94 +2,99 @@ import pandas as pd
 import logging
 from pathlib import Path
 
-# Importações internas
+# Internal imports
 from . import config as cfg
 from . import utils
 from . import calculations as calc
 
-def consolidar_inputs(files_dict: dict, join_key: str) -> pd.DataFrame:
+def consolidate_inputs(files_dict: dict, join_key: str) -> pd.DataFrame:
     df_master = None
-    # Colunas que queremos trazer APENAS do arquivo base_metadados
+    # Columns we want to bring ONLY from the base_metadata file
+    # Note: We keep these column names in Portuguese because they reflect the actual data columns
     METADATA_COLS = ['cd_setor', 'cd_mun', 'nm_mun', 'cd_uf', 'nm_uf', 'sigla_uf', 'area_km2', 'peso_dom', 'qtd_dom']
 
-    # 1. Primeiro, carregamos a base de metadados para garantir que ela seja o df_master
-    path_base = files_dict.get("base_metadados")
+    # 1. First, we load the metadata base to ensure it acts as df_master
+    path_base = files_dict.get("base_metadata")
     if path_base and path_base.is_file():
-        logging.info("Carregando base de metadados...")
+        logging.info("Loading metadata base...")
         df_master = pd.read_parquet(path_base)
-        # Mantém apenas join_key + metadados que existirem
-        cols_existentes = [join_key] + [c for c in METADATA_COLS if c in df_master.columns]
-        df_master = df_master[cols_existentes]
+        # Keep only join_key + existing metadata columns
+        existing_cols = [join_key] + [c for c in METADATA_COLS if c in df_master.columns]
+        df_master = df_master[existing_cols]
     else:
-        logging.error("Arquivo base_metadados não encontrado! O merge falhará.")
+        logging.error("base_metadata file not found! Merge will fail.")
         return None
 
-# 2. Agora fazemos o loop pelos indicadores (e1, v1, etc)
-    for apelido, path in files_dict.items():
-        if apelido == "base_metadados": continue # Pula pois já carregamos
+    # 2. Now we loop through the indicators (e1, v1, etc.)
+    for indicator_key, path in files_dict.items():
+        if indicator_key == "base_metadata": 
+            continue # Skip since we already loaded it
         
         if not Path(path).is_file():
-            logging.warning(f"Arquivo não encontrado para {apelido}: {path}")
+            logging.warning(f"File not found for {indicator_key}: {path}")
             continue
             
-        # LÊ O ARQUIVO PRIMEIRO
+        # READ THE FILE FIRST
         df_temp = pd.read_parquet(path)
-        # DEPOIS FAZ O LOG DO SHAPE (Isso corrige o bug de variável não declarada)
-        logging.info(f"Integrando {apelido} | Shape original: {df_temp.shape}")
+        # THEN LOG THE SHAPE
+        logging.info(f"Integrating {indicator_key} | Original shape: {df_temp.shape}")
         
-        nome_real_coluna = cfg.MAPA_COLUNAS.get(apelido)
+        # Gets the actual column name from config (e.g., 'g1' -> 'g1_inv_norm')
+        actual_column_name = cfg.COLUMN_MAP.get(indicator_key)
         
-        if nome_real_coluna in df_temp.columns:
-            # Seleciona apenas o ID e a coluna do dado, renomeando para o apelido (e1, v1...)
-            df_temp = df_temp[[join_key, nome_real_coluna]].rename(columns={nome_real_coluna: apelido})
+        if actual_column_name in df_temp.columns:
+            # Select only the ID and the data column, renaming it to the indicator_key (e1, v1...)
+            df_temp = df_temp[[join_key, actual_column_name]].rename(columns={actual_column_name: indicator_key})
             
-            # Merge left: mantém todos os H3 da base e traz o dado se existir
+            # Merge left: keep all H3 from the base and bring the data if it exists
             df_master = pd.merge(df_master, df_temp, on=join_key, how='left')
             
-            # Novo Log: Mostra como ficou o arquivo principal após colar a nova coluna
-            logging.debug(f"Shape após merge de {apelido}: {df_master.shape}")
+            # Log: Show how the main file looks after merging the new column
+            logging.debug(f"Shape after merging {indicator_key}: {df_master.shape}")
         else:
-            logging.warning(f"Coluna {nome_real_coluna} não encontrada em {path.name}")
+            logging.warning(f"Column {actual_column_name} not found in {path.name}")
+            
+    return df_master
 
 def run_h3():
-    logging.info("=== INICIANDO PIPELINE: MALHA H3 (SIMPLIFICADO) ===")
+    logging.info("=== STARTING PIPELINE: H3 GRID (SIMPLIFIED) ===")
     
-    # 1. Consolida os dados
-    df_dados = consolidar_inputs(cfg.FILES['h3'], cfg.COL_ID_H3)
+    # 1. Consolidate data
+    df_data = consolidate_inputs(cfg.FILES['h3'], cfg.COL_ID_H3)
     
-    if df_dados is None or df_dados.empty:
-        logging.error("Nenhum dado encontrado para H3.")
+    if df_data is None or df_data.empty:
+        logging.error("No data found for H3.")
         return
 
-    # 2. Calcula o Índice
-    df_calculado = calc.calcular_ijc_simples(df_dados)
+    # 2. Calculate the Index
+    df_calculated = calc.calculate_simple_cji(df_data)
 
     # =========================================================================
-    # 3. DIAGNÓSTICO PARA OS LOGS
+    # 3. DIAGNOSTICS FOR LOGS
     # =========================================================================
-    logging.info("--- DIAGNÓSTICO DO ARQUIVO FINAL ---")
+    logging.info("--- FINAL FILE DIAGNOSTICS ---")
     
-    # A) Logando as colunas
-    colunas = df_calculado.columns.tolist()
-    logging.info(f"Total de colunas geradas: {len(colunas)}")
-    logging.info(f"Lista de colunas: {colunas}")
+    # A) Logging the columns
+    columns = df_calculated.columns.tolist()
+    logging.info(f"Total columns generated: {len(columns)}")
+    logging.info(f"List of columns: {columns}")
     
-    # B) Logando as estatísticas (apenas das colunas numéricas para não quebrar)
-    # O .to_string() é essencial aqui para que o Pandas formate como texto no log
-    estatisticas = df_calculado.describe().to_string()
-    logging.info(f"Resumo Estatístico do DataFrame Final:\n{estatisticas}")
+    # B) Logging statistics (only numeric columns to avoid breaking)
+    # .to_string() is essential here so Pandas formats it as text in the log
+    statistics = df_calculated.describe().to_string()
+    logging.info(f"Statistical Summary of Final DataFrame:\n{statistics}")
     # =========================================================================
 
-    # 4. Salva o arquivo
+    # 4. Save the file
     path_output = cfg.FILES['output']['h3_final']
-    utils.save_parquet(df_calculado, path_output)
-    logging.info("Processo concluído com sucesso!")
+    utils.save_parquet(df_calculated, path_output)
+    logging.info("Process completed successfully!")
 
 def run():
     try:
         run_h3()
     except Exception as e:
-        logging.error(f"Falha crítica no pipeline H3: {e}")
+        logging.error(f"Critical failure in H3 pipeline: {e}")
 
 if __name__ == "__main__":
     run()

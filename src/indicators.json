@@ -1,0 +1,22 @@
+{
+  "e1": {"dimension": "exposicao", "col": "e1_des_norm", "file": "br_h3_e1_deslizamentos.parquet"},
+  "e2": {"dimension": "exposicao", "col": "e2_inu_norm", "file": "br_h3_e2_inundacoes.parquet"},
+  "e3": {"dimension": "exposicao", "col": "e3_cos_norm", "file": "br_h3_e3_costeira.parquet"},
+  "e4": {"dimension": "exposicao", "col": "e4_cal_norm", "file": "br_h3_e4_calor.parquet"},
+  "e5": {"dimension": "exposicao", "col": "e5_que_norm", "file": "br_h3_e5_queimadas.parquet"},
+  "v1": {"dimension": "vulnerabilidade", "col": "v1_ren_norm", "file": "br_h3_v1_renda.parquet"},
+  "v2": {"dimension": "vulnerabilidade", "col": "v2_mor_norm", "file": "br_h3_v2_moradia.parquet"},
+  "v3": {"dimension": "vulnerabilidade", "col": "v3_inf_norm", "file": "br_h3_v3_infraestrutura.parquet"},
+  "v4": {"dimension": "vulnerabilidade", "col": "v4_edu_norm", "file": "br_h3_v4_educacao.parquet"},
+  "v5": {"dimension": "vulnerabilidade", "col": "v5_sau_norm", "file": "br_h3_v5_saude.parquet"},
+  "p1": {"dimension": "grupos_prioritarios", "col": "p1_mul_norm", "file": "br_h3_p1_mulheres.parquet"},
+  "p2": {"dimension": "grupos_prioritarios", "col": "p2_cri_norm", "file": "br_h3_p2_criancas.parquet"},
+  "p3": {"dimension": "grupos_prioritarios", "col": "p3_ido_norm", "file": "br_h3_p3_idosos.parquet"},
+  "p4": {"dimension": "grupos_prioritarios", "col": "p4_pre_norm", "file": "br_h3_p4_pretos.parquet"},
+  "p5": {"dimension": "grupos_prioritarios", "col": "p5_ind_norm", "file": "br_h3_p5_indigenas.parquet"},
+  "g1": {"dimension": "gestao_municipal", "col": "g1_inv_norm", "file": "b3_h3_g1_mun_investimento_despesas.parquet"},
+  "g2": {"dimension": "gestao_municipal", "col": "g2_par_norm", "file": "b3_h3_g2_mun_participacao_nupdec.parquet"},
+  "g3": {"dimension": "gestao_municipal", "col": "g3_res_norm", "file": "b3_h3_g3_mun_resposta_alerta.parquet"},
+  "g4": {"dimension": "gestao_municipal", "col": "g4_rec_norm", "file": "b3_h3_g4_mun_reconhecimento_mapeamento.parquet"},
+  "g5": {"dimension": "gestao_municipal", "col": "g5_rep_norm", "file": "b3_h3_g5_mun_reparacao_direitos.parquet"}
+}

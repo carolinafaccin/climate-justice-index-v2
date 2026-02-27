@@ -4,44 +4,44 @@ import logging
 import re
 from pathlib import Path
 from datetime import datetime
-from . import config as cfg  # Precisamos importar o config para saber onde é a pasta logs
+from . import config as cfg  # We need to import config to know where the logs folder is
 
-# Função para configurar os logs (Apague o logging.basicConfig antigo daqui)
+# Function to configure logs (Remove any old logging.basicConfig from your project)
 def setup_logging():
-    # Gera um nome de arquivo único com a data/hora atual (ex: pipeline_20260226_093000.log)
+    # Generates a unique filename with the current date/time (e.g., pipeline_20260226_093000.log)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = cfg.LOGS_DIR / f"pipeline_{timestamp}.log"
 
-    # Criar um logger raiz (root)
+    # Create a root logger
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG) # O logger mestre captura tudo
+    logger.setLevel(logging.DEBUG) # The master logger captures everything
 
-    # Limpa configurações antigas caso você rode mais de uma vez na mesma sessão
+    # Clear old configurations in case you run it more than once in the same session
     if logger.hasHandlers():
         logger.handlers.clear()
 
-    # 1. Configuração do arquivo de texto (Salva tudo, até o DEBUG)
+    # 1. Text file configuration (Saves everything, even DEBUG level)
     file_format = logging.Formatter('%(asctime)s | %(levelname)-8s | %(module)s:%(funcName)s:%(lineno)d - %(message)s')
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_format)
 
-    # 2. Configuração do Terminal (Mostra apenas INFO para cima, para não poluir a tela)
+    # 2. Terminal configuration (Shows only INFO and above, to avoid cluttering the screen)
     console_format = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s', datefmt='%H:%M:%S')
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(console_format)
 
-    # Adiciona os dois comportamentos ao projeto
+    # Add both handlers to the project
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
-    logging.info(f"Logs configurados. Arquivo de log detalhado em: {log_file}")
+    logging.info(f"Logs configured. Detailed log file at: {log_file}")
 
 def get_next_version_path(path: Path) -> Path:
     """
-    Verifica se o arquivo existe. Se existir, incrementa a versão (v1 -> v2 -> v3).
-    Exemplo: 'resultado.parquet' -> 'resultado_v1.parquet' -> 'resultado_v2.parquet'
+    Checks if the file exists. If it does, increments the version (v1 -> v2 -> v3).
+    Example: 'result.parquet' -> 'result_v1.parquet' -> 'result_v2.parquet'
     """
     path = Path(path)
     
@@ -72,7 +72,7 @@ def get_next_version_path(path: Path) -> Path:
 
 def normalize_minmax(series: pd.Series, winsorize: bool = False, limits: tuple = (0.01, 0.99)) -> pd.Series:
     """
-    Normaliza uma série pandas entre 0 e 1 (Min-Max Scaling).
+    Normalizes a pandas series between 0 and 1 (Min-Max Scaling).
     """
     s = pd.to_numeric(series, errors='coerce')
     
@@ -90,12 +90,12 @@ def normalize_minmax(series: pd.Series, winsorize: bool = False, limits: tuple =
     return (s - min_val) / (max_val - min_val)
 
 def save_parquet(df: pd.DataFrame, path: Path):
-    """Salva Parquet com versionamento automático."""
+    """Saves Parquet with automatic versioning."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     
     final_path = get_next_version_path(path)
     
-    logging.info(f"Salvando Parquet em: {final_path.name}...")
+    logging.info(f"Saving Parquet to: {final_path.name}...")
     df.to_parquet(final_path)
-    logging.info("Salvo com sucesso.")
+    logging.info("Saved successfully.")

@@ -28,7 +28,7 @@ def check_password():
         st.text_input(
             "Digite a senha para acessar o Atlas:", type="password", on_change=password_entered, key="password"
         )
-        st.error("😕 Senha incorreta.")
+        st.error("Senha incorreta.")
         return False
     else:
         # Senha correta
@@ -40,8 +40,8 @@ if not check_password():
 # Configuração da Página
 st.set_page_config(layout="wide", page_title="Atlas de Justiça Climática")
 
-st.title("🌍 Índice de Justiça Climática (IJC) - Brasil")
-st.markdown("Visualização de dados intraurbanos por hexágonos H3 (Resolução 9).")
+st.title("Índice de Justiça Climática para municípios brasileiros")
+st.markdown("Análise intramunicipal através de hexágonos H3 (resolução 9).")
 
 # ==============================================================================
 # 1. CARREGAMENTO DE DADOS

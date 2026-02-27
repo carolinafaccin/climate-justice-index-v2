@@ -1,81 +1,90 @@
 import os
+import json
 from pathlib import Path
 
 # ==============================================================================
-# 1. DIRETÓRIOS
+# 1. LOCAL PATHS CONFIGURATION
 # ==============================================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-RAW_DIR = DATA_DIR / "raw"
-CLEAN_DIR = DATA_DIR / "clean"
-RESULTS_DIR = DATA_DIR / "results"
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_PATH = BASE_DIR / "config.local.json"
+
+if CONFIG_PATH.exists():
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        config_local = json.load(f)
+    DATA_DIR = Path(config_local["data_dir"])
+else:
+    DATA_DIR = BASE_DIR / "data"
+
+# Main Folders
+INPUTS_DIR = DATA_DIR / "inputs"
+OUTPUTS_DIR = DATA_DIR / "outputs"
+
+# Input Folders
+CLEAN_DIR = INPUTS_DIR / "clean"
+RAW_DIR = INPUTS_DIR / "raw"
+
+# Output Folders
+DIAGNOSE_DIR = OUTPUTS_DIR / "diagnose"
+FIGURES_DIR = OUTPUTS_DIR / "figures"
+RESULTS_DIR = OUTPUTS_DIR / "results"
+
+for d in [OUTPUTS_DIR, RESULTS_DIR, FIGURES_DIR, DIAGNOSE_DIR]:
+    d.mkdir(parents=True, exist_ok=True)
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ==============================================================================
-# 2. DEFINIÇÕES GLOBAIS
+# 2. GLOBAL PROJECT DEFINITIONS
 # ==============================================================================
+# Grid Resolution
 H3_RES = 9
 COL_ID_H3 = 'h3_id'
 
-# ==============================================================================
-# 3. INDICADORES
-# ==============================================================================
-INDICADORES = {
-    # EXPOSIÇÃO CLIMÁTICA
-    "e1": {"dimensao": "exposicao", "col": "e1_des_norm", "file": "br_h3_e1_deslizamentos.parquet"},
-    "e2": {"dimensao": "exposicao", "col": "e2_inu_norm", "file": "br_h3_e2_inundacoes.parquet"},
-    "e3": {"dimensao": "exposicao", "col": "e3_cos_norm", "file": "br_h3_e3_vulnerabilidade_costeira.parquet"},
-    "e4": {"dimensao": "exposicao", "col": "e4_cal_norm", "file": "br_h3_e4_calor.parquet"},
-    "e5": {"dimensao": "exposicao", "col": "e5_que_norm", "file": "br_h3_e5_queimadas.parquet"},
+# Versioning
+INDEX_VERSION = "v2.0"
 
-    # VULNERABILIDADE
-    "v1": {"dimensao": "vulnerabilidade", "col": "v1_ren_norm", "file": "br_h3_v1_renda.parquet"},
-    "v2": {"dimensao": "vulnerabilidade", "col": "v2_mor_norm", "file": "br_h3_v2_moradia.parquet"},
-    "v3": {"dimensao": "vulnerabilidade", "col": "v3_inf_norm", "file": "br_h3_v3_infraestrutura.parquet"},
-    "v4": {"dimensao": "vulnerabilidade", "col": "v4_edu_norm", "file": "br_h3_v4_educacao.parquet"},
-    "v5": {"dimensao": "vulnerabilidade", "col": "v5_sau_norm", "file": "br_h3_v5_modelo_gravitacional_saude.parquet"},
+# Formats the version for the filename (e.g., 'v1.0' becomes 'v1_0')
+_formatted_version = INDEX_VERSION.replace('.', '_')
 
-    # GRUPOS PRIORITÁRIOS
-    "p1": {"dimensao": "grupos_prioritarios", "col": "p1_gen_norm", "file": "br_h3_p1_mulheres_chefes_familia.parquet"},
-    "p2": {"dimensao": "grupos_prioritarios", "col": "p2_cri_norm", "file": "br_h3_p2_criancas.parquet"},
-    "p3": {"dimensao": "grupos_prioritarios", "col": "p3_ido_norm", "file": "br_h3_p3_idosos.parquet"},
-    "p4": {"dimensao": "grupos_prioritarios", "col": "p4_pre_norm", "file": "br_h3_p4_pretos_pardos.parquet"},
-    "p5": {"dimensao": "grupos_prioritarios", "col": "p5_ind_norm", "file": "br_h3_p5_indigenas_quilombolas.parquet"},
-
-    # CAPACIDADE DE GESTÃO MUNICIPAL
-    "g1": {"dimensao": "gestao_municipal", "col": "g1_inv_norm", "file": "b3_h3_g1_mun_despesas_liquidadas.parquet"},
-    "g2": {"dimensao": "gestao_municipal", "col": "g2_par_norm", "file": "b3_h3_g2_mun_nupdec.parquet"},
-    "g3": {"dimensao": "gestao_municipal", "col": "g3_alerta_norm", "file": "b3_h3_g3_mun_alerta.parquet"},
-    "g4": {"dimensao": "gestao_municipal", "col": "g4_map_norm", "file": "b3_h3_g4_mun_mapeamento.parquet"},
-    "g5": {"dimensao": "gestao_municipal", "col": "g5_pol_norm", "file": "b3_h3_g5_mun_politicas_direitos_humanos.parquet"},
-}
+# Main file names
+FILE_BASE_H3 = "br_h3_res9.parquet"
+BASE_H3_DIR = RAW_DIR / "h3" / FILE_BASE_H3
+FILE_FINAL_INDEX = f"br_h3_res9_ijc_{_formatted_version}.parquet"
 
 # ==============================================================================
-# 4. GERAÇÃO AUTOMÁTICA DOS DICIONÁRIOS
+# 3. METADATA LOADING (INDICATORS)
 # ==============================================================================
+INDICATORS_PATH = BASE_DIR / "indicators.json"
 
-# Gera o MAPA_COLUNAS: {'e1': 'e1_des_norm', ...}
-MAPA_COLUNAS = {k: v['col'] for k, v in INDICADORES.items()}
+if INDICATORS_PATH.exists():
+    with open(INDICATORS_PATH, 'r', encoding='utf-8') as f:
+        INDICATORS = json.load(f)
+else:
+    print(f"Warning: File {INDICATORS_PATH} not found.")
+    INDICATORS = {}
 
-# Gera o FILES['h3']: {'e1': PosixPath('.../br_h3_e1_deslizamentos.parquet'), ...}
-FILES_H3 = {k: CLEAN_DIR / v['file'] for k, v in INDICADORES.items()}
-FILES_H3["base_metadados"] = RAW_DIR / "h3" / "br_h3_res9.parquet"
+# ==============================================================================
+# 4. AUTOMATIC DICTIONARY GENERATION
+# ==============================================================================
+# Alterado de MAPA_COLUNAS para COLUMN_MAP
+COLUMN_MAP = {k: v['col'] for k, v in INDICATORS.items()}
 
-# Gera o DIMENSOES agrupando os apelidos por categoria
-DIMENSOES = {}
-for k, v in INDICADORES.items():
-    dim = v['dimensao']
-    if dim not in DIMENSOES:
-        DIMENSOES[dim] = []
-    DIMENSOES[dim].append(k)
+FILES_H3 = {k: CLEAN_DIR / v['file'] for k, v in INDICATORS.items()}
 
-# Dicionário de arquivos final
+# Alterado de "base_metadados" para "base_metadata"
+FILES_H3["base_metadata"] = BASE_H3_DIR
+
+# Alterado de DIMENSOES para DIMENSIONS
+DIMENSIONS = {}
+for k, v in INDICATORS.items():
+    # Puxa a chave "dimension" (ou "dimensao" se ainda não tiver traduzido o JSON)
+    dim = v.get('dimension', v.get('dimensao')) 
+    DIMENSIONS.setdefault(dim, []).append(k)
+
 FILES = {
     "h3": FILES_H3,
     "output": {
-        "h3_final": RESULTS_DIR / "br_h3_res9_ijc.parquet"
+        "h3_final": RESULTS_DIR / FILE_FINAL_INDEX
     }
 }
