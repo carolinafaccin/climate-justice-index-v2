@@ -232,7 +232,12 @@
         "g7": {
           "name": "mun_reconhecimento_cadastro",
           "abbr": "rec",
-          "description": "Existência de cadastro ou identificação de famílias em áreas de risco"
+          "description": "Existência de cadastro ou identificação de famílias em áreas de risco",
+          "source": {
+            "dir": "midr/icm/2026/t1",
+            "col": "v7",
+            "type": "binary"
+          }
         },
         "g8": {
           "name": "mun_reparacao_direitos",
